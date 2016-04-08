@@ -7,6 +7,10 @@
 // GLFW
 #include <GLFW/glfw3.h>
 
+#include "imgui.cpp"
+#include "imgui_draw.cpp"
+#include "imgui_impl_glfw_gl3.cpp"
+
 
 // Function prototypes
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
@@ -31,7 +35,7 @@ int main()
     glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
     // Create a GLFWwindow object that we can use for GLFW's functions
-    GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "LearnOpenGL", nullptr, nullptr);    
+    GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "OpenGL FTW", nullptr, nullptr);    
     if (window == nullptr)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -41,6 +45,9 @@ int main()
     glfwMakeContextCurrent(window);
     // Set the required callback functions
     glfwSetKeyCallback(window, key_callback);
+
+    ImGui_ImplGlfwGL3_Init(window, true);
+
 
     // Set this to true so GLEW knows to use a modern approach to retrieving function pointers and extensions
     glewExperimental = GL_TRUE;
@@ -54,22 +61,49 @@ int main()
     // Define the viewport dimensions
     glViewport(0, 0, WIDTH, HEIGHT);
 
+    bool show_another_window = false;
+    ImVec4 clear_color = ImColor(114, 144, 154);
+
+
     // Game loop
     while (!glfwWindowShouldClose(window))
     {
         // Check if any events have been activiated (key pressed, mouse moved etc.) and call corresponding response functions
         glfwPollEvents();
+        ImGui_ImplGlfwGL3_NewFrame();
 
-        // Render
-        // Clear the colorbuffer
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        // 1. Show a simple window
+        // Tip: if we don't call ImGui::Begin()/ImGui::End() the widgets appears in a window automatically called "Debug"
+        {
+            static float f = 0.0f;
+            ImGui::Text("Hello, world!");
+            ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
+            ImGui::ColorEdit3("clear color", (float*)&clear_color);
+            if (ImGui::Button("Exit Game")) show_another_window ^= 1;
+            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+        }
+
+        // 2. Show another simple window, this time using an explicit Begin/End pair
+        if (show_another_window)
+        {
+            ImGui::SetNextWindowSize(ImVec2(200,100), ImGuiSetCond_FirstUseEver);
+            ImGui::Begin("Are you sure?", &show_another_window);
+            if (ImGui::Button("Exit")) break;
+            ImGui::End();
+        }
+
+        // Rendering
+        int display_w, display_h;
+        glfwGetFramebufferSize(window, &display_w, &display_h);
+        glViewport(0, 0, display_w, display_h);
+        glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
         glClear(GL_COLOR_BUFFER_BIT);
-
-        // Swap the screen buffers
+        ImGui::Render();
         glfwSwapBuffers(window);
     }
 
     // Terminate GLFW, clearing any resources allocated by GLFW.
+    ImGui_ImplGlfwGL3_Shutdown();
     glfwTerminate();
     return 0;
 }
